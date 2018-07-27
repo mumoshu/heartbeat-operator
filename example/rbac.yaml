@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: heartbeat-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  # helm install stable/heartbeat --name heartbeat-operatorとしたときに、
+  # helm経由で作成されるclusterrole, clusterrolebindingと名前がコンフリクトしてエラーにならないように、微妙に違う名前にしていおく意図で-crd-adminをつけている
+  name: heartbeat-operator-crd-admin
+rules:
+- apiGroups:
+  - heartbeatoperator.freee.co.jp
+  resources:
+  - httpmonitors
+  - tcpmonitors
+  verbs:
+  - "*"
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: heartbeat-operator-crd-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: heartbeat-operator-crd-admin
+subjects:
+- kind: ServiceAccount
+  name: heartbeat-operator
+  namespace: kube-system

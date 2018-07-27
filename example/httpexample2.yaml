@@ -1,0 +1,10 @@
+apiVersion: "heartbeatoperator.freee.co.jp/v1"
+kind: HttpMonitor
+metadata:
+  name: example-http-monitor2
+spec:
+  urls:
+  - "http://nginx:80"
+  schedule: '@every 15s'
+  ipv4: true
+  timeout: 5s

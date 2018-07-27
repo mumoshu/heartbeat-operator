@@ -1,0 +1,135 @@
+#!/bin/sh
+
+# Usage examples:
+#   heartbeat-operator heartbeat -e -d='*'
+#   DEBUG=1 heartbeat-operator heartbeat -e -d='*' --plugin kinesis.so
+
+if [ ! -z "${DEBUG+v}" ]; then
+  set -vx
+fi
+
+set -u
+
+interval=10
+delete_interval=5
+
+sha1sum=/usr/bin/sha1sum
+if [ !  -x "${sha1sum}" ]; then
+  # use the `shasum` command instead on macOS
+  sha1sum="shasum -a 1"
+fi
+
+base_dir="$(cd $(dirname $0)/..; pwd)"
+
+state_dir=${state_dir:-/var/heartbeat-operator}
+etc_dir=${etc_dir:-${base_dir}/etc/}
+tmp_dir=${tmp_dir:-/tmp}
+poll_file_dir=${poll_file_dir:-/usr/share/heartbeat/monitors}
+
+command=""
+args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -- ) shift; command="$1"; shift ;;
+    * ) args+=("${1}"); shift ;;
+  esac
+done
+
+# check path
+if [ ! -d "${state_dir}" ]; then
+  mkdir -p "${state_dir}"
+  if [ $? -ne 0 ]; then
+    exit 1
+  fi
+fi
+
+for crd_name in httpmonitor tcpmonitor; do
+  crd_manifest="${etc_dir}/${crd_name}-crd.yaml"
+
+  # create crd only when it doesn't exist
+  if ! kubectl get crd $crd_name > /dev/null 2>&1; then
+    echo "info: creating custom resource definition \"$crd_name\""
+    if ! kubectl apply -f "${crd_manifest}"; then
+      exit 1
+    fi
+  fi
+done
+
+if [ "${command+v}" != "" ]; then
+  echo ""
+  echo "info: starting ${command}"
+  ${command} "${args[@]}" &
+fi
+
+echo "info: starting reconcile loop"
+
+# polling loop
+while :; do
+  stimesec=$(date +%s)
+
+  for crd_name in httpmonitor tcpmonitor; do
+    poll_file=${crd_name}s.ndjson
+
+    # get rule info as "name.ver", e.g. example.1234, which is used as filename
+    for ns_name_ver in $(kubectl get $crd_name --all-namespaces -o jsonpath='{range .items[*]}{.metadata.namespace}{"."}{.metadata.name}{"."}{.metadata.resourceVersion}{"\t"}{.end}'); do
+      namespace=$(echo $ns_name_ver | cut -d. -f1)
+      name=$(echo $ns_name_ver | cut -d. -f2)
+      name_hash=$(echo $name | ${sha1sum} | head -c 20)
+      state_file_prefix="${crd_name}-${namespace}-${name_hash}"
+      state_file="${state_file_prefix}-${ns_name_ver}.yaml"
+
+      if [ -f $state_dir/$state_file ]; then
+        # update timestamp (keep alive)
+        touch $state_dir/$state_file
+      else
+        kubectl get $crd_name $name -o json -n $namespace | jq -cM .spec > ${tmp_dir}/${state_file}
+        if [ ! -s ${tmp_dir}/${state_file} ]; then
+          echo "error: empty state \"$name\""
+        else
+          # check new or update
+          ls ${state_dir}/${state_file_prefix}* > /dev/null 2>&1
+          if [ $? -ne 0 ]; then
+            echo "info: creating new state  \"$name \""
+          else
+            echo "info: updating state  \"$name \""
+            rm $state_dir/${state_file_prefix}*
+          fi
+
+          mv ${tmp_dir}/${state_file} ${state_dir}/
+        fi
+      fi
+    done
+  done
+
+  etimesec=$(( $(date +%s) - $stimesec ))
+  expiredmin=$(( $etimesec/60 + 1))
+
+  # delete disabled rule
+  for state_file in `find $state_dir/ -mmin +$expiredmin -a -name "*.yaml"`; do
+    echo "info: deleting expired state file \"$state_file\""
+    rm $state_file
+  done
+
+  for crd_name in httpmonitor tcpmonitor; do
+    poll_file="${poll_file_dir}/${crd_name}s.ndjson"
+    tmp_poll_file="${tmp_dir}/${crd_name}s.ndjson.new"
+    if [ -e "${tmp_poll_file}" ]; then
+      rm "${tmp_poll_file}"
+    fi
+    touch $tmp_poll_file
+
+    for state_file in `find $state_dir/ -name "${crd_name}-*.yaml"`; do
+      cat $state_file >> $tmp_poll_file
+    done
+
+    diff --new-file --unified "${poll_file}" "${tmp_poll_file}"
+    cp "${tmp_poll_file}" "${poll_file}"
+
+    if [ ! -z "${DEBUG+v}" ]; then
+      echo debug: dumping poll file: "${poll_file}"
+      cat "${poll_file}"
+    fi
+  done
+
+  sleep $interval
+done

@@ -1,0 +1,7 @@
+apiVersion: "heartbeatoperator.freee.co.jp/v1"
+kind: TcpMonitor
+metadata:
+  name: example-tcp-monitor
+spec:
+  schedule: '@every 10s'
+  hosts: ["nginx:80"]

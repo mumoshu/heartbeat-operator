@@ -1,0 +1,41 @@
+image:
+  repository: mumoshu/heartbeat-operator
+  tag: canary
+  pullPolicy: Always
+resources: {}
+
+config:
+  heartbeat.monitors:
+  - type: http
+    enabled: true
+    schedule: '@every 10s'
+    ipv4: true
+    timeout: 5s
+    wait: 5s
+    urls: ["http://google.com"]
+    watch.poll_file:
+        path: monitors/httpmonitors.ndjson
+  - type: tcp
+    enabled: true
+    schedule: '@every 10s'
+    ipv4: true
+    timeout: 5s
+    wait: 5s
+    watch.poll_file:
+       path: monitors/tcpmonitors.ndjson
+
+  processors:
+  - add_cloud_metadata:
+
+  output.file:
+    path: "/usr/share/heartbeat/data"
+    filename: heartbeat
+    rotate_every_kb: 10000
+    number_of_files: 5
+
+plugins:
+- kinesis.so
+
+serviceAccount:
+  create: false
+  name: heartbeat-operator
