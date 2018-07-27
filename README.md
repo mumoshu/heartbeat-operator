@@ -1,6 +1,6 @@
 # heartbeat-operator
 
-A simple Kubernetes operator 
+A simple Kubernetes operator that operates Elastic [Heartbeat](https://www.elastic.co/products/beats/heartbeat), so that your users can monitor any `http` and `tcp` services running on any infrastructure.
 
 Features:
 
