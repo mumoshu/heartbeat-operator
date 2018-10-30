@@ -113,10 +113,7 @@ while :; do
   for crd_name in httpmonitor tcpmonitor; do
     poll_file="${poll_file_dir}/${crd_name}s.ndjson"
     tmp_poll_file="${tmp_dir}/${crd_name}s.ndjson.new"
-    if [ -e "${tmp_poll_file}" ]; then
-      rm "${tmp_poll_file}"
-    fi
-    touch $tmp_poll_file
+    echo > "${tmp_poll_file}"
 
     for state_file in `find $state_dir/ -name "${crd_name}-*.yaml"`; do
       cat $state_file >> $tmp_poll_file
