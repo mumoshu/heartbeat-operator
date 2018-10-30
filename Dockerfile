@@ -26,5 +26,3 @@ COPY rootfs /
 ENV PATH=${PATH}:/opt/heartbeat-operator/bin
 
 ENTRYPOINT ["dumb-init", "--", "heartbeat-operator", "--", "heartbeat"]
-
-CMD ["heartbeat-operator"]
