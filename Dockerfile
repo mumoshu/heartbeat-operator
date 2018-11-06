@@ -1,4 +1,4 @@
-FROM kubeaws/awsbeats:0.2.4-heartbeat-6.3.1
+FROM kubeaws/awsbeats:0.2.4-heartbeat-6.4.0
 
 USER root
 

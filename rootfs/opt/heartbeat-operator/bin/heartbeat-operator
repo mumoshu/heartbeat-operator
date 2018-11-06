@@ -82,7 +82,7 @@ while :; do
         # update timestamp (keep alive)
         touch $state_dir/$state_file
       else
-        kubectl get $crd_name $name -o json -n $namespace | jq -cM .spec > ${tmp_dir}/${state_file}
+        kubectl get $crd_name $name -o json -n $namespace | jq -cM ".spec + {fields:{name:\"$name\",namespace:\"$namespace\"}}"> ${tmp_dir}/${state_file}
         if [ ! -s ${tmp_dir}/${state_file} ]; then
           echo "error: empty state \"$name\""
         else
