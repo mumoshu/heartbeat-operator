@@ -86,12 +86,108 @@ $ cat /usr/share/heartbeat/data/heartbeat | tail -n 1
 ```
 
 ```
-sh-4.2# cat /usr/share/heartbeat/data/heartbeat | tail -n 1
+sh-4.2# cat /usr/share/heartbeat/data/heartbeat | grep nginx | grep http | tail -n 1
 ```
 
+would print the latest `http` event(note that this is prettified for readability):
+
 ```json
-{"@timestamp":"2018-07-27T02:48:01.808Z","@metadata":{"beat":"heartbeat","type":"doc","version":"6.3.1"},"tcp":{"rtt":{"connect":{"us":17498}},"port":80},"http":{"rtt":{"validate":{"us":76514},"content":{"us":68},"total":{"us":169462},"write_request":{"us":126},"response_header":{"us":76445}},"response":{"status":200},"url":"http://google.com"},"monitor":{"duration":{"us":190514},"status":"up","scheme":"http","id":"http@http://google.com","name":"http","type":"http","host":"google.com","ip":"172.217.161.78"},"beat":{"name":"heartbeat-operator-dhgrs","hostname":"heartbeat-operator-dhgrs","version":"6.3.1"},"host":{"name":"heartbeat-operator-dhgrs"},"resolve":{"ip":"172.217.161.78","rtt":{"us":20751},"host":"google.com"},"type":"monitor"}
+{
+  "@timestamp": "2018-11-08T01:31:15.936Z",
+  "@metadata": {
+    "beat": "heartbeat",
+    "type": "doc",
+    "version": "6.4.0"
+  },
+  "http": {
+    "url": "http://nginx:80"
+  },
+  "tcp": {
+    "port": 80
+  },
+  "fields": {
+    "name": "example-http-monitor",
+    "namespace": "default"
+  },
+  "host": {
+    "name": "heartbeat-operator-dhgrs",
+  },
+  "beat": {
+    "name": "heartbeat-operator-dhgrs",
+    "hostname": "heartbeat-operator-dhgrs",
+    "version": "6.4.0"
+  },
+  "monitor": {
+    "id": "http@http://nginx:80",
+    "scheme": "http",
+    "name": "http",
+    "type": "http",
+    "host": "nginx",
+    "duration": {
+      "us": 48211
+    },
+    "status": "down"
+  },
+  "resolve": {
+    "host": "nginx"
+  },
+  "error": {
+    "type": "io",
+    "message": "lookup nginx on 10.96.0.10:53: server misbehaving"
+  }
+}
 ```
+
+And
+
+```
+sh-4.2# cat /usr/share/heartbeat/data/heartbeat | grep nginx | grep tcp | tail -n 1
+```
+
+would print the latest `tcp` event(note that this is prettified for readability):
+
+```json
+{
+  "@timestamp": "2018-11-08T01:31:15.936Z",
+  "@metadata": {
+    "beat": "heartbeat",
+    "type": "doc",
+    "version": "6.4.0"
+  },
+  "fields": {
+    "namespace": "default",
+    "name": "example-tcp-monitor"
+  },
+  "host": {
+    "name": "heartbeat-operator-dhqrs"
+  },
+  "beat": {
+    "version": "6.4.0",
+    "name": "heartbeat-operator-dhqrs",
+    "hostname": "heartbeat-operator-dhgrs"
+  },
+  "error": {
+    "message": "lookup nginx on 10.96.0.10:53: server misbehaving",
+    "type": "io"
+  },
+  "monitor": {
+    "name": "tcp",
+    "type": "tcp",
+    "host": "nginx",
+    "duration": {
+      "us": 49174
+    },
+    "status": "down",
+    "id": "tcp-tcp@nginx:80",
+    "scheme": "tcp"
+  },
+  "resolve": {
+    "host": "nginx"
+  }
+}
+```
+
+Let's grep for the second `http` example thisn time:
 
 ```
 sh-4.2# cat /usr/share/heartbeat/data/heartbeat | grep hackmd | tail -n 1
