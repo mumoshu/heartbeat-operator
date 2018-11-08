@@ -4,9 +4,18 @@ A simple Kubernetes operator that operates Elastic [Heartbeat](https://www.elast
 
 Features:
 
+- Easy installation with helm
 - Kubernetes custom resources to manage Heartbeat's `http` and `tcp` monitors.
 - Supports multiple namespaces i.e. custom resources are namespace-aware. That is, you can restrict your devs to only create custom resources within the namespaces they're responsible.
-- Easy installation with helm
+
+The `fields` of each `heartbeat` event published contains the `metadata.name` and the `metadata.namespace` of the source custom resource. Use them to group/filter/route events.
+
+```json
+"fields": {
+  "name": "my-first-http-check",
+  "namespace": "my-cool-product"
+}
+```
 
 ## Install
 
